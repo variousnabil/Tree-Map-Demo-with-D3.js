@@ -54,7 +54,7 @@ axios.get(url).then(response => {
     const treemap = treeData => d3.treemap()
         .size([widthMap, heightMap])
         .padding(1)
-        .round(true)(d3.hierarchy(treeData).sum(d => d.value).sort((a, b) => b.value - a.value));
+        .round(false)(d3.hierarchy(treeData).sum(d => d.value).sort((a, b) => b.value - a.value));
 
     const root = treemap(data);
     const leaf = SVG_TREE_MAP.selectAll('g')
@@ -62,16 +62,36 @@ axios.get(url).then(response => {
         .join('g')
         .attr('transform', d => `translate(${d.x0}, ${d.y0})`);
 
-    leaf.append('title')
-        .text(d => 'tooltip');
+    const tooltip = document.querySelector('#tooltip');
 
     leaf.append('rect')
         .attr('id', (d, i) => 'rect' + i)
         .attr('class', 'tile')
+        .attr('data-name', d => d.data.name.trim())
+        .attr('data-category', d => d.data.category)
+        .attr('data-value', d => { return d.data.value; })
         .attr('fill', d => { while (d.depth > 1) d = d.parent; return color(d.data.name); })
         .attr('fill-opacity', 0.6)
         .attr('width', d => d.x1 - d.x0)
-        .attr('height', d => d.y1 - d.y0);
+        .attr('height', d => d.y1 - d.y0)
+        .on('mouseover', (d, i) => {
+            const value = d.data.value;
+            tooltip.style.visibility = 'visible';
+            tooltip.style.left = d3.event.pageX - 115;
+            tooltip.style.top = d3.event.pageY - 60;
+            tooltip.innerHTML = `Total Grossing: $ ${Number(value).toLocaleString()}`
+            tooltip.setAttribute('data-value', Number(value))
+        })
+        .on('mouseout', (d, i) => {
+            tooltip.style.visibility = 'hidden';
+            tooltip.style.right = 0;
+            tooltip.style.top = 0;
+        })
+        .on('mousemove', d => {
+            tooltip.style.visibility = 'visible';
+            tooltip.style.left = d3.event.pageX - 115;
+            tooltip.style.top = d3.event.pageY - 60;
+        });
 
     leaf.append('clipPath')
         .attr('id', (d, i) => { console.log('leaf data', d); return 'clipPath' + i })
@@ -111,7 +131,7 @@ axios.get(url).then(response => {
     }) {
         const id = 'category' + Math.floor(Math.random() * (10000000 - 1 + 1)) + 1;
         if (columns !== null) {
-            return `<div style="display: flex; align-items: center; justify-content: center; margin-left: ${+marginLeft}px; min-height: 33px; font: 10px sans-serif;">
+            return `<div  id='legend' style="display: flex; align-items: center; justify-content: center; margin-left: ${+marginLeft}px; min-height: 33px; font: 10px sans-serif;">
         <style>
             .${id}-item {
                 break-inside: avoid;
@@ -142,29 +162,23 @@ axios.get(url).then(response => {
             })}
         </div>
         </div>`} else {
-            return `<div style="display: flex; align-items: center; justify-content: center; min-height: 33px; margin-left: ${+marginLeft}px; font: 10px sans-serif;">
+            return `<div id='legend' style="display: flex; align-items: center; justify-content: center; min-height: 33px; margin-left: ${+marginLeft}px; font: 10px sans-serif;">
         <style>
 
-        .${id} {
-            display: inline-flex;
-            align-items: center;
-            margin-right: 1em;
-        }
-
-        .${id}::before {
-            content: "";
-            width: ${+swatchWidth}px;
-            height: ${+swatchHeight}px;
-            margin-right: 0.5em;
-            background: var(--color);
-        }
-
         </style>
-        <div>${color.domain().map(value => `<span class="${id}" style="--color: ${color(value)}">${(format(value))}</span>`)}</div>`;
+        <svg width="100%" height="80">
+        ${color.domain().map((value, i) => `
+        <g transform='translate(${80 * i}, ${10})'>
+            <rect class='legend-item' x='${0}' y='20' height='10' width='10'  class="${id}" fill="${color(value)}"></rect>
+            <text x='${15}' y='28.5'>${(format(value))}</text>
+        </g>
+        `)}
+        </svg>`;
         }
     }
 
     document.querySelector('.container')
         .insertAdjacentHTML('beforeend',
             swatches({ color: color }));
+
 });
