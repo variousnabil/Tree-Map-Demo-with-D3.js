@@ -13,7 +13,7 @@ body {
 .container {
     margin: 1em;
     border-radius: 4px;
-    width: 1600px;
+    width: 1300px;
     height: wrap;
 }
 
@@ -35,12 +35,4 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-}
-
-#sourceLink {
-    fill: #349888;
-}
-
-#sourceLink:hover {
-    fill: black;
 }
